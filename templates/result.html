@@ -3,14 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Result</title>
+    <title>Generated Image and Suggestions</title>
 </head>
 <body>
-    <h1>Generated Child Actor Suggestion</h1>
-    <h2>Uploaded Image</h2>
-    <img src="{{ input_image }}" alt="Uploaded Image">
-    <h2>Generated Image</h2>
-    <img src="{{ output_image }}" alt="Generated Image">
-    <a href="/">Go Back</a>
+    <h1>Generated Child Image</h1>
+    <img src="{{ url_for('static', filename='uploads/' + input_image.split('/')[-1]) }}" alt="Input Image" width="200">
+    <br>
+    <img src="{{ url_for('static', filename='generated/' + generated_image.split('/')[-1]) }}" alt="Generated Image" width="200">
+    <h2>Top 3 Suggestions</h2>
+    <ul>
+        {% for name, similarity, image_path in top_3_matches %}
+        <li>
+            <img src="{{ url_for('static', filename='kid_version/' + image_path.split('/')[-1]) }}" alt="{{ name }}" width="100">
+            <p>{{ name }} - Similarity: {{ similarity }}</p>
+        </li>
+        {% endfor %}
+    </ul>
 </body>
 </html>
