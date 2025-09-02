@@ -1,1 +1,1 @@
-# MatchAI
+# StarPalsAI
