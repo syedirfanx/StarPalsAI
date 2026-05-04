@@ -1,0 +1,96 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * STARPALS CASTING AI SECURITY MODEL
+     *
+     * Core Philosophy:
+     * This ruleset implements a Global Discovery model with Strict Individual Ownership. 
+     * To support the AI matching system, all authenticated users are permitted to 
+     * browse the full directory of Actors and Roles. However, modifications are 
+     * strictly limited to the creator of each document.
+     *
+     * Data Structure:
+     * Data is organized into two primary root-level collections:
+     * 1. /actors/{actorId} - Profiles for acting talent.
+     * 2. /roles/{roleId}   - Requirements for casting opportunities.
+     *
+     * Key Security Decisions:
+     * - Authorization Independence: Every Actor and Role document must contain a 
+     *   denormalized `ownerId` field. This allows the security rules to perform 
+     *   instant, low-cost ownership checks without querying external user documents.
+     * - Homogenous Read Access: All authenticated users (including anonymous users, 
+     *   as per the auth providers) can read and list all profiles to enable the 
+     *   cross-referencing required for casting.
+     * - Relational Integrity: On creation, the rules enforce that the `ownerId` 
+     *   matches the current user's UID. On update, the `ownerId` is made immutable 
+     *   to prevent ownership hijacking.
+     *
+     * Prototyping Mode:
+     * This ruleset focuses on strict authorization (who can access what) while 
+     * remaining flexible on the specific data schema (fields and types) to allow 
+     * for rapid development iteration.
+     */
+
+    // --- Helper Functions ---
+
+    /** @description Checks if the request is from an authenticated user. */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /** @description Checks if the provided ID matches the authenticated user's UID. */
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    /** @description Checks if the existing document is owned by the authenticated user. */
+    function isExistingOwner(userId) {
+      return resource != null && isOwner(userId);
+    }
+
+    // --- Collection Rules ---
+
+    /**
+     * @description Rules for Actor profiles. Allows global browsing by authenticated users, but restricts management to the owner.
+     * @path /actors/{actorId}
+     * @allow Authenticated user reading an actor profile (get).
+     * @deny Unauthenticated user attempting to list actor profiles (list).
+     * @principle Uses denormalized 'ownerId' for high-performance write authorization.
+     */
+    match /actors/{actorId} {
+      allow get, list: if isSignedIn();
+      
+      // CRITICAL: The 'Actor' entity in the IR schema is missing an 'ownerId' field, 
+      // but the reasoning explicitly requires it for authorization. 
+      // The rules below enforce its presence and accuracy.
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isExistingOwner(resource.data.ownerId) && request.resource.data.ownerId == resource.data.ownerId;
+      allow delete: if isExistingOwner(resource.data.ownerId);
+    }
+
+    /**
+     * @description Rules for Project Roles. Enables talent to find opportunities while ensuring only project owners can edit roles.
+     * @path /roles/{roleId}
+     * @allow Owner of a project updating the character requirements (update).
+     * @deny User 'A' attempting to delete a role created by User 'B' (delete).
+     * @principle Enforces relational integrity by ensuring 'ownerId' matches the authenticated creator.
+     */
+    match /roles/{roleId} {
+      allow get, list: if isSignedIn();
+
+      // CRITICAL: The 'Role' entity in the IR schema is missing an 'ownerId' field,
+      // but the reasoning explicitly requires it for authorization.
+      // The rules below enforce its presence and accuracy.
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update: if isExistingOwner(resource.data.ownerId) && request.resource.data.ownerId == resource.data.ownerId;
+      allow delete: if isExistingOwner(resource.data.ownerId);
+    }
+
+    // Default deny for any unmatched paths
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

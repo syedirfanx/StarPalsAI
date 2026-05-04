@@ -1,0 +1,173 @@
+{
+  "entities": {
+    "Actor": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Actor",
+      "type": "object",
+      "description": "Represents an individual actor's profile, including their personal attributes, skills, and portfolio information for casting purposes.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Actor entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "The full name of the actor."
+        },
+        "age": {
+          "type": "number",
+          "description": "The current age of the actor."
+        },
+        "physicalAttributes": {
+          "type": "string",
+          "description": "A JSON object stringified containing various physical attributes of the actor (e.g., height, build, hair color)."
+        },
+        "skills": {
+          "type": "array",
+          "description": "An array of skills possessed by the actor.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "emotionalTraits": {
+          "type": "array",
+          "description": "An array of emotional traits or acting styles of the actor.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "portfolioUrl": {
+          "type": "string",
+          "description": "URL to the actor's online portfolio.",
+          "format": "uri"
+        },
+        "imageUrl": {
+          "type": "string",
+          "description": "URL to a profile image of the actor.",
+          "format": "uri"
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the actor's profile was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "age",
+        "physicalAttributes",
+        "skills",
+        "emotionalTraits"
+      ]
+    },
+    "Role": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Role",
+      "type": "object",
+      "description": "Defines a character role within a project, specifying required attributes, skills, and emotional traits for casting.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Role entity."
+        },
+        "projectName": {
+          "type": "string",
+          "description": "The name of the project to which this role belongs."
+        },
+        "characterName": {
+          "type": "string",
+          "description": "The name of the character for this role."
+        },
+        "ageRangeMin": {
+          "type": "number",
+          "description": "The minimum age requirement for the character role."
+        },
+        "ageRangeMax": {
+          "type": "number",
+          "description": "The maximum age requirement for the character role."
+        },
+        "physicalRequirements": {
+          "type": "string",
+          "description": "A JSON object stringified detailing physical requirements for the role (e.g., specific height, build, hair color)."
+        },
+        "requiredSkills": {
+          "type": "array",
+          "description": "An array of skills required for the character role.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "emotionalTraits": {
+          "type": "array",
+          "description": "An array of emotional traits or acting styles required for the character role.",
+          "items": {
+            "type": "string"
+          }
+        },
+        "genre": {
+          "type": "string",
+          "description": "The genre of the project or character role (e.g., Drama, Comedy, Sci-Fi)."
+        },
+        "createdAt": {
+          "type": "string",
+          "description": "Timestamp when the role definition was created.",
+          "format": "date-time"
+        }
+      },
+      "required": [
+        "id",
+        "projectName",
+        "characterName",
+        "ageRangeMin",
+        "ageRangeMax",
+        "physicalRequirements",
+        "requiredSkills",
+        "emotionalTraits"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/actors/{actorId}",
+        "definition": {
+          "entityName": "Actor",
+          "schema": {
+            "$ref": "#/backend/entities/Actor"
+          },
+          "description": "Stores individual actor profiles. Each document includes a denormalized 'ownerId' field to ensure authorization independence, allowing the creating user to manage their profile securely while enabling global read access for the matching system and other authenticated users.",
+          "params": [
+            {
+              "name": "actorId",
+              "description": "The unique identifier for the Actor profile."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/roles/{roleId}",
+        "definition": {
+          "entityName": "Role",
+          "schema": {
+            "$ref": "#/backend/entities/Role"
+          },
+          "description": "Stores project role definitions. Each document includes a denormalized 'ownerId' field for authorization independence, ensuring the role's creator can securely manage it, while permitting global read access for the matching system and actors browsing opportunities.",
+          "params": [
+            {
+              "name": "roleId",
+              "description": "The unique identifier for the Role definition."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The StarPals Casting AI application requires a Firestore structure that supports efficient global listing of Actors and Roles for its core matching functionality, while securely managing ownership for profile and role definition modifications. To achieve this, we will use root-level collections for both 'actors' and 'roles'. Each document within these collections will denormalize an 'ownerId' field, storing the unique ID of the user who created and owns that specific actor profile or role definition. This design explicitly supports **Authorization Independence** as security rules can directly evaluate `request.auth.uid == resource.data.ownerId` for write operations (create, update, delete) without requiring expensive and complex `get()` calls to parent documents (e.g., a user's profile). This ensures atomic operations and simplifies rule debugging.\n\nFurthermore, this structure is optimized for **QAPs (Query as a Point of Security)**. By making 'actors' and 'roles' accessible as root collections, the application's backend matching service, or any authenticated user, can perform `list` operations (queries) across all available actor profiles or role definitions without encountering security rule violations. The security posture for reading these documents is homogenous: all authenticated users can read all actor and role data. Write access, however, is strictly limited to the `ownerId` embedded within each document. This clear segregation of read and write permissions, combined with the denormalized `ownerId`, makes the authorization intent explicit and enables robust, scalable querying essential for the matching algorithm."
+  }
+}

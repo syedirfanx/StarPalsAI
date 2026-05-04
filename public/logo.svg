@@ -1,0 +1,17 @@
+<svg viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="starGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="hsl(262, 83%, 60%)" />
+      <stop offset="100%" stop-color="hsl(217, 91%, 60%)" />
+    </linearGradient>
+  </defs>
+  <path
+    d="M16 2L20.24 11.76L30 16L20.24 20.24L16 30L11.76 20.24L2 16L11.76 11.76L16 2Z"
+    fill="url(#starGradient)"
+    fill-opacity="0.5"
+  />
+  <path
+    d="M16 5L19.03 12.97L27 16L19.03 19.03L16 27L12.97 19.03L5 16L12.97 12.97L16 5Z"
+    fill="url(#starGradient)"
+  />
+</svg>
