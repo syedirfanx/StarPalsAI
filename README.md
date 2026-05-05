@@ -48,4 +48,3 @@ A custom algorithm that calculates a weighted **Compatibility Score** between ac
 - **Multi-Modal Workflows:** Implemented image-to-data-URI pipelines to feed visual data directly into LLM prompts for visual analysis.
 - **Responsive Design:** A mobile-first, sidebar-driven navigation system built for efficiency on set or in the office.
 
----
