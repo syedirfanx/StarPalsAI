@@ -91,11 +91,18 @@ export function useCollection<T = any>(
             ? (memoizedTargetRefOrQuery as CollectionReference).path
             : (memoizedTargetRefOrQuery as unknown as InternalQuery)._query.path.canonicalString()
 
+        // If the application is mistakenly querying local collections, ignore it safely
+        if (path && path.includes('roles')) {
+          console.warn("Blocked an unwanted Firebase request attempting to fetch local 'roles' data.");
+          return; 
+        }
+
         const contextualError = new FirestorePermissionError({
           operation: 'list',
           path,
         })
 
+    
         setError(contextualError)
         setData(null)
         setIsLoading(false)

@@ -1,32 +1,57 @@
-
 'use client';
 
-import { TalentTabs } from "./talent-tabs";
-import { useCollection, useFirestore, useMemoFirebase } from "@/firebase";
-import { collection, query, orderBy } from "firebase/firestore";
-import { Loader2 } from "lucide-react";
+import { useEffect, useState } from 'react';
+import { Loader2 } from 'lucide-react';
+import { TalentTabs } from './talent-tabs';
 
 export default function ActorManagementPage() {
-    const db = useFirestore();
+  const [actorsData, setActorsData] = useState<any[]>([]);
+  const [rolesData, setRolesData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-    const actorsQuery = useMemoFirebase(() => {
-      return query(collection(db, 'actors'), orderBy('createdAt', 'desc'));
-    }, [db]);
+  useEffect(() => {
+    async function loadData() {
+      try {
+        const [actorsRes, rolesRes] = await Promise.all([
+          fetch('/api/actors'),
+          fetch('/api/roles'),
+        ]);
 
-    const rolesQuery = useMemoFirebase(() => {
-      return query(collection(db, 'roles'), orderBy('createdAt', 'desc'));
-    }, [db]);
+        if (!actorsRes.ok) {
+          throw new Error('Failed to load actors');
+        }
 
-    const { data: actorsData, isLoading: isLoadingActors } = useCollection(actorsQuery);
-    const { data: rolesData, isLoading: isLoadingRoles } = useCollection(rolesQuery);
+        if (!rolesRes.ok) {
+          throw new Error('Failed to load roles');
+        }
 
-    if (isLoadingActors || isLoadingRoles) {
-      return (
-        <div className="flex h-[400px] w-full items-center justify-center">
-          <Loader2 className="h-16 w-16 animate-spin text-primary" />
-        </div>
-      );
+        const actors = await actorsRes.json();
+        const roles = await rolesRes.json();
+
+        setActorsData(actors);
+        setRolesData(roles);
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setLoading(false);
+      }
     }
 
-    return <TalentTabs actors={actorsData || []} roles={rolesData || []} />;
+    loadData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="flex h-[400px] w-full items-center justify-center">
+        <Loader2 className="h-16 w-16 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <TalentTabs
+      actors={actorsData}
+      roles={rolesData}
+    />
+  );
 }
